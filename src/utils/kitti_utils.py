@@ -74,7 +74,13 @@ def rotationError(Rt1, Rt2):
     a = pose_error[0, 0]
     b = pose_error[1, 1]
     c = pose_error[2, 2]
+    # Important Rotation Identity:
+    # For any rotation matrix R: trace(R) = 1 + 2*cos(theta)
+    # where theta is the axis-angle rotation angle.
+    # Rearranging: cos(theta) = (trace(R) - 1) / 2
+    # Here, trace(R) = a + b + c, so d = (a + b + c - 1) * 0.5 = cos(theta)
     d = 0.5 * (a + b + c - 1.0)
+    # Clamp d to [-1, 1] to avoid numerical issues with arccos
     return np.arccos(max(min(d, 1.0), -1.0))
 
 def translationError(Rt1, Rt2):
