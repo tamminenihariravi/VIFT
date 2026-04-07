@@ -1,0 +1,96 @@
+===========================================================
+     VIFT_DUMMY WORKSPACE - PROJECT MANUAL & WORKFLOW
+===========================================================
+
+1. ALL COMMANDS TO RUN THE PROJECT
+-----------------------------------------------------------
+Since everything is flattened into this folder, you can run all 
+training and testing directly from this directory!
+
+[Basic Training]
+Pick an experiment configuration (from configs/experiment) and run:
+> python train.py experiment=kitti_vio
+> python train.py experiment=latent_kitti_vio_paper
+
+[Training with Specific Parameters]
+You can override any yaml setting directly from the command line:
+> python train.py experiment=kitti_vio trainer.max_epochs=50 data.batch_size=16
+
+[Debugging Mode]
+To quickly test if the model builds without running a full training loop:
+> python train.py debug=default
+
+[Checking Available Options]
+To see all configurable targets dynamically retrieved by Hydra:
+> python train.py --help
+
+
+2. DETAILED SYSTEMS FLOWCHART (How Data Moves Through The Code)
+-----------------------------------------------------------
+This section traces the execution path from RAW data to final loss.
+
+[1. DATA & INITIALIZATION START]
+    |
+    +--> configs/experiment/*.yaml 
+    |       (Hydra reads your arguments and selects the model/learning-rate/epochs)
+    |
+    |--> train.py  (Main Entry Point)
+            |--> instantiators.py (Sets up the Trainer, Callbacks, and Loggers)
+            |--> pylogger.py (Initializes console & file logging)
+            |
+[2. RAW DATA PROCESSING]
+    |--> kitti_utils.py (KITTI Dataset Loader)
+            |--> Reads raw sequences (Images + IMU data)
+            |--> custom_transform.py (Applies Random Cropping, Rotation, Augmentations)
+            +--> Output: Batches of Time-Sequenced Image frames and IMU arrays.
+            
+[3. LIGHTNING MODULE EXECUTION]
+    |--> vio_module.py OR weighted_vio_module.py (Core PyTorch Lightning Modules)
+            |
+            |--> (A) Forward Pass Begins:
+            |      +--> vsvio.py (If used, Extracts visual features via CNN and Inertial features via Bi-LSTM)
+            |      +--> pose_transformer.py OR vio_simple_dense_net.py (The Brain)
+            |             (Processes the visual/inertial sequences over time)
+            |             (Analyzes temporal memory)
+            |      +--> Output: Raw un-normalized Pose Estimations (Translations + 9D Rotations)
+            |
+[4. KINEMATICS & ORTHOGONALIZATION]
+    |--> rpmg.py & tools.py (The Math Engine)
+            |--> (Because Raw Neural Network outputs 9 numbers for rotation, but they aren't geometric matrices)
+            |--> Applies SVD (Singular Value Decomposition)
+            |--> Applies Symmetric Orthogonalization (det = -1 mirror trick)
+            +--> Output: Perfect Geometric 3x3 Rotation Matrices & 3x1 Translations.
+            
+[5. LOSS CALCULATION & UPDATES]
+    |--> weighted_loss.py (The Judge)
+            |--> Compares the predicted 3x3 Rotations vs Ground Truth (GT) Target Rotations.
+            |--> Calculates MSE / RMSE / SE3 Geodesic Loss.
+            |--> Applies Backpropagation to update the neural network weights.
+            
+[6. VALIDATION & METRICS]
+    |--> kitti_tester.py & kitti_metrics_calculator.py
+            |--> After every Epoch, evaluates performance on unseen Validation Sequences (e.g., 09, 10).
+            |--> Saves the "Best.ckpt" physically into your /logs directory based on lowest error.
+
+
+3. HOW TO EXTRACT WEIGHTS AND RUN INFERENCE
+-----------------------------------------------------------
+[A] Collecting the Weights
+When you train a model, PyTorch Lightning automatically saves the best weights 
+(Checkpoints) in your project's root `logs` directory.
+Path format:
+../logs/train/runs/YYYY-MM-DD_HH-MM-SS/checkpoints/
+
+Look for a file ending in `.ckpt` (e.g., `epoch_020.ckpt` or `best.ckpt`).
+
+[B] Running the Inference (Evaluation) Code
+Once you have the path to your `.ckpt` file, you can run inference or testing 
+on your validation/test sequences using the `eval.py` script.
+
+Command:
+> python eval.py experiment=kitti_vio ckpt_path="C:/path/to/your/best.ckpt"
+
+If you only want to test on specific sequences in inference:
+> python eval.py experiment=kitti_vio ckpt_path="best.ckpt" tester.val_seqs=['09','10']
+
+===========================================================
