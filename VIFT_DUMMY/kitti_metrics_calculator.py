@@ -1,4 +1,4 @@
-from .base_metrics_calculator import BaseMetricsCalculator
+from base_metrics_calculator import BaseMetricsCalculator
 from typing import Dict, Any
 from kitti_eval import kitti_err_cal
 from kitti_utils import path_accu

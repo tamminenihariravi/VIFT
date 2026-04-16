@@ -33,3 +33,8 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+ # VIFT_DUMMY large files
+VIFT_DUMMY/data/kitti_data/
+VIFT_DUMMY/data/kitti_latent_data/
+VIFT_DUMMY/pretrained_models/  

@@ -6,6 +6,16 @@ import rootutils
 import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
+import torch.serialization
+import torch.optim
+import torch.optim.lr_scheduler
+
+_original_load = torch.load
+def _unsafe_load(*args, **kwargs):
+    if 'weights_only' in kwargs:
+        kwargs['weights_only'] = False
+    return _original_load(*args, **kwargs)
+torch.load = _unsafe_load
 from omegaconf import DictConfig
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -29,7 +39,7 @@ rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from pylogger import RankedLogger
 from instantiators import instantiate_callbacks, instantiate_loggers
 from logging_utils import log_hyperparameters
-from utils import (
+from vift_utils import (
     extras,
     get_metric_value,
     task_wrapper,
@@ -89,7 +99,9 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("test"):
         log.info("Starting testing!")
-        ckpt_path = trainer.checkpoint_callback.best_model_path
+        ckpt_path = cfg.get("ckpt_path")
+        if not ckpt_path:
+            ckpt_path = trainer.checkpoint_callback.best_model_path
         if ckpt_path == "":
             log.warning("Best ckpt not found! Using current weights for testing...")
             ckpt_path = None

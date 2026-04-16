@@ -1,4 +1,4 @@
-from .base_tester import BaseTester
+from base_tester import BaseTester
 import torch
 import numpy as np
 from typing import Dict, Any
@@ -54,6 +54,14 @@ class KITTILatentTester(BaseTester):
         return results
 
     def save_results(self, results: Dict[str, Any], save_dir: str):
+        from kitti_eval import plotPath_2D, kitti_eval
         for seq_name, seq_data in results.items():
             np.save(os.path.join(save_dir, f'{seq_name}_estimated_poses.npy'), seq_data['estimated_poses'])
             np.save(os.path.join(save_dir, f'{seq_name}_gt_poses.npy'), seq_data['gt_poses'])
+            
+            # Generate plots
+            try:
+                pose_est_global, pose_gt_global, t_rel, r_rel, t_rmse, r_rmse, speed = kitti_eval(seq_data['estimated_poses'], seq_data['gt_poses'])
+                plotPath_2D(seq_name, pose_gt_global, pose_est_global, save_dir, speed, window_size=100)
+            except Exception as e:
+                print(f"Error plotting sequence {seq_name}: {e}")

@@ -1,9 +1,9 @@
-_target_: src.data.vio_datamodule.VIODataModule
+_target_: vio_datamodule.VIODataModule
 batch_size: 4 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
 num_workers: 0
 pin_memory: False
 train_loader:
-  _target_: src.data.components.KITTI_dataset.KITTI
+  _target_: KITTI_dataset.KITTI
   _partial_: false
   root: ${paths.data_dir}/kitti_data
   sequence_length: 11
@@ -15,7 +15,7 @@ train_loader:
       - _target_: custom_transform.ToTensor
       - _target_: custom_transform.Resize
 val_loader:
-  _target_: src.data.components.KITTI_dataset.KITTI
+  _target_: KITTI_dataset.KITTI
   _partial_: false
   root: ${paths.data_dir}/kitti_data
   sequence_length: 11
@@ -27,7 +27,7 @@ val_loader:
       - _target_: custom_transform.ToTensor
       - _target_: custom_transform.Resize
 test_loader:
-  _target_: src.data.components.KITTI_dataset.KITTI
+  _target_: KITTI_dataset.KITTI
   _partial_: false
   root: ${paths.data_dir}/kitti_data
   sequence_length: 11

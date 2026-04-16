@@ -8,7 +8,7 @@ import scipy.io as sio
 import torch
 from kitti_utils import read_pose_from_text, saveSequence
 from kitti_eval import plotPath_2D, kitti_eval, data_partition
-from vsvio import Encoder
+from cache_latent_features import OriginalEncoder as Encoder
 
 from natsort import natsorted
 

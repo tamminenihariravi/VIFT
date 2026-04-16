@@ -8,7 +8,7 @@ defaults:
   - override /data: kitti_vio
   - override /model: vio
   - override /callbacks: none
-  - override /trainer: default
+  - override /trainer: gpu
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters

@@ -29,6 +29,10 @@ class VIOLitModule(LightningModule):
         self.tester = tester
         self.metrics_calculator = metrics_calculator
 
+        # MeanMetric: ప్రతి batch loss ని track చేసి, epoch చివరలో average ఇస్తుంది.
+        self.train_loss = MeanMetric()
+        self.val_loss = MeanMetric()
+
 
     def forward(self, x, target):
         return self.net(x, target)
@@ -68,7 +72,11 @@ class VIOLitModule(LightningModule):
         for name, value in metrics.items():
             self.log(f"test/{name}", value)
         
-        save_dir = self.trainer.logger.log_dir
+        if self.trainer.logger and hasattr(self.trainer.logger, 'log_dir') and self.trainer.logger.log_dir:
+            save_dir = self.trainer.logger.log_dir
+        else:
+            save_dir = self.trainer.default_root_dir
+        
         self.tester.save_results(results, save_dir)
 
     def setup(self, stage):

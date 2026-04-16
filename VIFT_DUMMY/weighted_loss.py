@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from utils.kitti_utils import eulerAnglesToRotationMatrixTorch as etr
-from utils import rpmg
+from kitti_utils import eulerAnglesToRotationMatrixTorch as etr
+import rpmg
 
 class WeightedMSEPoseLoss(nn.Module):
     def __init__(self, angle_weight=100):

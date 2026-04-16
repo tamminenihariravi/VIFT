@@ -43,9 +43,20 @@ class VIOSimpleDenseNet(nn.Module):  # nn.Module నుండి వారసత
         """
         super().__init__()  # పేరెంట్ క్లాస్ (nn.Module) యొక్క __init__ ని కాల్ చేయడం
 
-        # ఇన్‌పుట్ పరిమాణం = అన్ని ఇమేజ్ పిక్సెల్స్ + అన్ని IMU రీడింగ్‌లు (ప్రతి రీడింగ్‌లో 6 విలువలు: 3 accelerometer + 3 gyroscope)
-        input_size = (seq_len) * channels * width * height + ((seq_len - 1) * imu_freq  + 1)* 6
-        # అవుట్‌పుట్ పరిమాణం = (seq_len - 1) జతల కోసం ఒక్కొక్కదానికి 6-DoF పోజ్
+        # ----------------------------------------------------
+        # Optimization: Replaced global pixel flattening with 
+        # a tiny standard Conv spatial pool to kill 138M params
+        # ----------------------------------------------------
+        self.feature_extractor = nn.Sequential(
+            nn.Conv2d(channels, 16, kernel_size=5, stride=2, padding=2, bias=False),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((4, 4))
+        )
+
+        img_features = seq_len * 16 * 4 * 4
+        imu_features = ((seq_len - 1) * imu_freq  + 1) * 6
+        input_size = img_features + imu_features
         output_size = (seq_len-1) * 6
 
         # 3 హిడెన్ లేయర్లతో సీక్వెన్షియల్ న్యూరల్ నెట్‌వర్క్ నిర్మించడం
@@ -73,7 +84,12 @@ class VIOSimpleDenseNet(nn.Module):  # nn.Module నుండి వారసత
 
         imgs, imus, rot, weight = input  # ఇన్‌పుట్ ట్యూపుల్‌ను విడదీయడం: ఇమేజ్‌లు, IMU డేటా, రొటేషన్, వెయిట్
         batch_size, seq_len, channels, height, width = imgs.shape  # ఇమేజ్ టెన్సర్ ఆకారం నుండి డైమెన్షన్లు తీయడం
-        imgs = imgs.view(batch_size, -1)  # ఇమేజ్‌లను 1D వెక్టర్‌గా ఫ్లాటెన్ చేయడం: (batch, seq*C*H*W)
+        
+        # Apply spatial pooling instead of blindly flattening massive images
+        imgs = imgs.view(batch_size * seq_len, channels, height, width)
+        imgs = self.feature_extractor(imgs)
+        
+        imgs = imgs.view(batch_size, -1)  # ఇమేజ్‌లను 1D వెక్టర్‌గా ఫ్లాటెన్ చేయడం
         imus = imus.view(batch_size, -1)  # IMU డేటాను 1D వెక్టర్‌గా ఫ్లాటెన్ చేయడం: (batch, imu_samples*6)
 
         x = torch.cat((imgs, imus), 1)  # ఇమేజ్‌లు మరియు IMU డేటాను ఒకే వెక్టర్‌గా కలపడం (concatenate)

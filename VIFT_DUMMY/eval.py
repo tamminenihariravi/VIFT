@@ -27,7 +27,7 @@ rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 from pylogger import RankedLogger
 from instantiators import instantiate_loggers
 from logging_utils import log_hyperparameters
-from utils import (
+from vift_utils import (
     extras,
     task_wrapper,
 )
