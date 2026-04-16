@@ -28,6 +28,9 @@ class VIOLitModule(LightningModule):
         self.criterion = criterion
         self.tester = tester
         self.metrics_calculator = metrics_calculator
+        
+        self.train_loss = MeanMetric()
+        self.val_loss = MeanMetric()
 
 
     def forward(self, x, target):
